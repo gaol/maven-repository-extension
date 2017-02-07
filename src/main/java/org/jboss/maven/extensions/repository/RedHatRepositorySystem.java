@@ -55,6 +55,14 @@ import org.eclipse.aether.resolution.ArtifactResult;
 import org.eclipse.aether.resolution.DependencyRequest;
 import org.eclipse.aether.resolution.DependencyResolutionException;
 import org.eclipse.aether.resolution.DependencyResult;
+import org.eclipse.aether.resolution.MetadataRequest;
+import org.eclipse.aether.resolution.MetadataResult;
+import org.eclipse.aether.resolution.VersionRangeRequest;
+import org.eclipse.aether.resolution.VersionRangeResolutionException;
+import org.eclipse.aether.resolution.VersionRangeResult;
+import org.eclipse.aether.resolution.VersionRequest;
+import org.eclipse.aether.resolution.VersionResolutionException;
+import org.eclipse.aether.resolution.VersionResult;
 import org.eclipse.aether.spi.log.LoggerFactory;
 
 /**
@@ -135,7 +143,9 @@ public class RedHatRepositorySystem extends DefaultRepositorySystem {
         }
         if (repos.isEmpty()) {
             error("No repository can be used for artifact: " + artifact);
+            return repos;
         }
+
         Collections.sort(repos, new Comparator<RemoteRepository>() {
             @Override
             public int compare(RemoteRepository r1, RemoteRepository r2) {
@@ -157,6 +167,12 @@ public class RedHatRepositorySystem extends DefaultRepositorySystem {
                 return r1.getId().compareTo(r2.getId()); // compare by id alphabetic
             }
         });
+        if (debug) {
+            debug("Ordered repositores are:");
+            for (RemoteRepository repo: repos) {
+                debug(repo.getUrl());
+            }
+        }
         return repos;
     }
 
@@ -220,6 +236,24 @@ public class RedHatRepositorySystem extends DefaultRepositorySystem {
             }
         }
         return super.resolveArtifacts(session, requests);
+    }
+
+    @Override
+    public VersionResult resolveVersion(RepositorySystemSession session, VersionRequest request)
+            throws VersionResolutionException {
+        if (enabled) {
+            request.setRepositories(getRemoteRepositories(request.getArtifact(), request.getRepositories()));
+        }
+        return super.resolveVersion(session, request);
+    }
+
+    @Override
+    public VersionRangeResult resolveVersionRange(RepositorySystemSession session, VersionRangeRequest request)
+            throws VersionRangeResolutionException {
+        if (enabled) {
+            request.setRepositories(getRemoteRepositories(request.getArtifact(), request.getRepositories()));
+        }
+        return super.resolveVersionRange(session, request);
     }
 
 }
