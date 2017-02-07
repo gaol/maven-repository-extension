@@ -66,11 +66,14 @@ public class RedHatRepositorySystem extends DefaultRepositorySystem {
 
     private static final String REPO_EXTENSTION_ENABLED = "repo.extension.enabled";
 
+    private static final String DEBUG = "debug";
+
     private static final String REDHAT_REPO_STR = "redhat";
 
     private static final String REPO_EXTENSTION_ENABLED_MESSAGE = "Red Hat Maven Repository Extenstion is loaded.";
 
     private boolean enabled = Boolean.getBoolean(REPO_EXTENSTION_ENABLED);
+    private boolean debug = Boolean.getBoolean(DEBUG);
 
     public RedHatRepositorySystem(){
         // default constructor.
@@ -104,6 +107,12 @@ public class RedHatRepositorySystem extends DefaultRepositorySystem {
         }
     }
 
+    private void debug(String message) {
+        if (debug) {
+            System.out.println("[DEBUG] " + message);
+        }
+    }
+
     private void info(String message) {
         System.out.println("[INFO] " + message);
     }
@@ -117,7 +126,7 @@ public class RedHatRepositorySystem extends DefaultRepositorySystem {
         for (RemoteRepository repo: candidates) {
             if (artifact != null && artifact.getVersion().contains(REDHAT_REPO_STR)) {
                 if (repo.getUrl().contains(REDHAT_REPO_STR)) {
-                    info("Use Repo: " + repo.getUrl() + " for artifact: " + artifact);
+                    debug("Use Repo: " + repo.getUrl() + " for artifact: " + artifact);
                     repos.add(repo);
                 }
             } else {
