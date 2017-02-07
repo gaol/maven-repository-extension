@@ -182,6 +182,7 @@ public class RedHatRepositorySystem extends DefaultRepositorySystem {
         if (enabled) {
             CollectRequest collectRequest = request.getCollectRequest();
             List<RemoteRepository> allRepos = collectRequest.getRepositories();
+            debug("(resolveDependencies) Fix remote repositories for " + collectRequest.getDependencies());
             for (Dependency dep: collectRequest.getDependencies()) {
                 List<RemoteRepository> repos = getRemoteRepositories(dep.getArtifact(), allRepos);
                 collectRequest.setRepositories(repos); // get ordered or limited.
@@ -197,6 +198,7 @@ public class RedHatRepositorySystem extends DefaultRepositorySystem {
     public ArtifactDescriptorResult readArtifactDescriptor(RepositorySystemSession session, ArtifactDescriptorRequest request)
             throws ArtifactDescriptorException {
         if (enabled) {
+            debug("(readArtifactDescriptor) Fix remote repositories for " + request.getArtifact());
             request.setRepositories(getRemoteRepositories(request.getArtifact(), request.getRepositories()));
         }
         return super.readArtifactDescriptor(session, request);
@@ -207,6 +209,7 @@ public class RedHatRepositorySystem extends DefaultRepositorySystem {
             throws DependencyCollectionException {
         if (enabled) {
             List<RemoteRepository> allRepos = request.getRepositories();
+            debug("(collectDependencies) Fix remote repositories for " + request.getDependencies());
             for (Dependency dep: request.getDependencies()) {
                 List<RemoteRepository> repos = getRemoteRepositories(dep.getArtifact(), allRepos);
                 request.setRepositories(repos); // get ordered or limited.
@@ -222,6 +225,7 @@ public class RedHatRepositorySystem extends DefaultRepositorySystem {
     public ArtifactResult resolveArtifact(RepositorySystemSession session, ArtifactRequest request)
             throws ArtifactResolutionException {
         if (enabled) {
+            debug("(resolveArtifact) Fix remote repositories for " + request.getArtifact());
             request.setRepositories(getRemoteRepositories(request.getArtifact(), request.getRepositories()));
         }
         return super.resolveArtifact(session, request);
@@ -231,6 +235,7 @@ public class RedHatRepositorySystem extends DefaultRepositorySystem {
     public List<ArtifactResult> resolveArtifacts(RepositorySystemSession session, Collection<? extends ArtifactRequest> requests)
             throws ArtifactResolutionException {
         if (enabled) {
+            debug("(resolveArtifacts) Fix remote repositories for " + requests);
             for (ArtifactRequest request: requests) {
                 request.setRepositories(getRemoteRepositories(request.getArtifact(), request.getRepositories()));
             }
@@ -242,6 +247,7 @@ public class RedHatRepositorySystem extends DefaultRepositorySystem {
     public VersionResult resolveVersion(RepositorySystemSession session, VersionRequest request)
             throws VersionResolutionException {
         if (enabled) {
+            debug("(resolveVersion) Fix remote repositories for " + request.getArtifact());
             request.setRepositories(getRemoteRepositories(request.getArtifact(), request.getRepositories()));
         }
         return super.resolveVersion(session, request);
@@ -251,6 +257,7 @@ public class RedHatRepositorySystem extends DefaultRepositorySystem {
     public VersionRangeResult resolveVersionRange(RepositorySystemSession session, VersionRangeRequest request)
             throws VersionRangeResolutionException {
         if (enabled) {
+            debug("(resolveVersionRange) Fix remote repositories for " + request.getArtifact());
             request.setRepositories(getRemoteRepositories(request.getArtifact(), request.getRepositories()));
         }
         return super.resolveVersionRange(session, request);
