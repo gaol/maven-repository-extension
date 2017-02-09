@@ -41,8 +41,11 @@ under the License.
   </scm>
 
   <properties>
+    <version.junit>4.12</version.junit>
     <version.maven>3.3.9</version.maven>
     <version.plexus>1.5.5</version.plexus>
+    <maven.compiler.target>1.8</maven.compiler.target>
+    <maven.compiler.source>1.8</maven.compiler.source>
   </properties>
 
   <dependencies>
@@ -72,6 +75,13 @@ under the License.
           <artifactId>junit</artifactId>
         </exclusion>
       </exclusions>
+    </dependency>
+
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>${version.junit}</version>
+      <scope>test</scope>
     </dependency>
 
   </dependencies>

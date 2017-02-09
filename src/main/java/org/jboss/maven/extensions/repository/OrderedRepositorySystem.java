@@ -19,8 +19,6 @@ package org.jboss.maven.extensions.repository;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 
 import javax.inject.Inject;
@@ -55,8 +53,6 @@ import org.eclipse.aether.resolution.ArtifactResult;
 import org.eclipse.aether.resolution.DependencyRequest;
 import org.eclipse.aether.resolution.DependencyResolutionException;
 import org.eclipse.aether.resolution.DependencyResult;
-import org.eclipse.aether.resolution.MetadataRequest;
-import org.eclipse.aether.resolution.MetadataResult;
 import org.eclipse.aether.resolution.VersionRangeRequest;
 import org.eclipse.aether.resolution.VersionRangeResolutionException;
 import org.eclipse.aether.resolution.VersionRangeResult;
@@ -64,31 +60,33 @@ import org.eclipse.aether.resolution.VersionRequest;
 import org.eclipse.aether.resolution.VersionResolutionException;
 import org.eclipse.aether.resolution.VersionResult;
 import org.eclipse.aether.spi.log.LoggerFactory;
+import org.jboss.maven.extensions.repository.OrderedRepositoryConfiguration.OrderRule;
 
 /**
  * @author <a href="mailto:lgao@redhat.com">Lin Gao</a>
  *
  */
 @Component(role = RepositorySystem.class)
-public class RedHatRepositorySystem extends DefaultRepositorySystem {
+public class OrderedRepositorySystem extends DefaultRepositorySystem {
 
-    private static final String REPO_EXTENSTION_ENABLED = "repo.extension.enabled";
+    private static final String REPO_EXTENSTION_ENABLED = "ordered.repository.extension.enabled";
+    private static final String ADDITIONAL_PROP_URL = "ordered.repository.extension.configure.url";
 
-    private static final String DEBUG = "debug";
+    static final String DEBUG = "ordered.repository.extension.debug";
 
-    private static final String REDHAT_REPO_STR = "redhat";
-
-    private static final String REPO_EXTENSTION_ENABLED_MESSAGE = "Red Hat Maven Repository Extenstion is loaded.";
-
+    private static final String REPO_EXTENSTION_ENABLED_MESSAGE = "Ordered Maven Repository Extenstion is loaded.";
+    
     private boolean enabled = Boolean.getBoolean(REPO_EXTENSTION_ENABLED);
     private boolean debug = Boolean.getBoolean(DEBUG);
 
-    public RedHatRepositorySystem(){
+    private OrderedRepositoryConfiguration config = null;
+
+    public OrderedRepositorySystem(){
         // default constructor.
     }
 
     @Inject
-    RedHatRepositorySystem(VersionResolver versionResolver, VersionRangeResolver versionRangeResolver,
+    OrderedRepositorySystem(VersionResolver versionResolver, VersionRangeResolver versionRangeResolver,
             ArtifactResolver artifactResolver, MetadataResolver metadataResolver,
             ArtifactDescriptorReader artifactDescriptorReader, DependencyCollector dependencyCollector, Installer installer,
             Deployer deployer, LocalRepositoryProvider localRepositoryProvider, SyncContextFactory syncContextFactory,
@@ -107,6 +105,9 @@ public class RedHatRepositorySystem extends DefaultRepositorySystem {
         setRemoteRepositoryManager(remoteRepositoryManager);
         setLoggerFactory(loggerFactory);
         logLoadedMessage();
+        if (enabled) {
+            config = new OrderedRepositoryConfiguration(System.getProperty(ADDITIONAL_PROP_URL));
+        }
     }
 
     private void logLoadedMessage() {
@@ -129,16 +130,51 @@ public class RedHatRepositorySystem extends DefaultRepositorySystem {
         System.err.println("[ERROR] " + message);
     }
 
-    List<RemoteRepository> getRemoteRepositories(Artifact artifact, List<RemoteRepository> candidates) {
+    private List<RemoteRepository> getOrderedRemoteRepositories(Artifact artifact, List<RemoteRepository> candidates) {
+        String gav = artifact.getGroupId() + ":" + artifact.getArtifactId() + ":" + artifact.getVersion();
         List<RemoteRepository> repos = new ArrayList<RemoteRepository>();
-        for (RemoteRepository repo: candidates) {
-            if (artifact != null && artifact.getVersion().contains(REDHAT_REPO_STR)) {
-                if (repo.getUrl().contains(REDHAT_REPO_STR)) {
-                    debug("Use Repo: " + repo.getUrl() + " for artifact: " + artifact);
-                    repos.add(repo);
+        boolean matched = false;
+        for (OrderRule rule: config.getOrderedRules()) {
+            if (gav.matches(rule.getPattern())) {
+                matched = true;
+                // find matches, added repos in order of defined in rule.repos, then if include others, add left repos
+                for (String repoId: rule.getRepos()) {
+                    for (RemoteRepository repo: candidates) {
+                        if (repoId.trim().equals(repo.getId().trim())) {
+                            if (!repos.contains(repo)) {
+                                repos.add(repo);
+                            }
+                        }
+                    }
                 }
-            } else {
-                repos.add(repo);
+                if (rule.isIncludeOtherRepo()) {
+                    //add other repos back
+                    for (RemoteRepository repo: candidates) {
+                        if (!repos.contains(repo)) {
+                            repos.add(repo);
+                        }
+                    }
+                }
+                break;
+            }
+        }
+        if (!matched) {// try default repo orders
+            for (String repoId: config.getDefaultRepos()) {
+                for (RemoteRepository repo: candidates) {
+                    if (repoId.trim().equals(repo.getId().trim())) {
+                        if (!repos.contains(repo)) {
+                            repos.add(repo);
+                        }
+                    }
+                }
+            }
+            if (config.isReposIncludedByDefault()) {
+                //add other repos back
+                for (RemoteRepository repo: candidates) {
+                    if (!repos.contains(repo)) {
+                        repos.add(repo);
+                    }
+                }
             }
         }
         if (repos.isEmpty()) {
@@ -146,31 +182,10 @@ public class RedHatRepositorySystem extends DefaultRepositorySystem {
             return repos;
         }
 
-        Collections.sort(repos, new Comparator<RemoteRepository>() {
-            @Override
-            public int compare(RemoteRepository r1, RemoteRepository r2) {
-                if (r1 != null && r2 == null) {
-                    return 1;
-                }
-                if (r1 == null && r2 != null) {
-                    return -1;
-                }
-                if (r1 == null && r2 == null) {
-                    return 0;
-                }
-                if (r1.getUrl().contains(REDHAT_REPO_STR) && !r2.getUrl().contains(REDHAT_REPO_STR)) {
-                    return 1;
-                }
-                if (!r1.getUrl().contains(REDHAT_REPO_STR) && r2.getUrl().contains(REDHAT_REPO_STR)) {
-                    return -1;
-                }
-                return r1.getId().compareTo(r2.getId()); // compare by id alphabetic
-            }
-        });
         if (debug) {
-            debug("Ordered repositores are:");
+            debug("Ordered repositores for " + artifact + " are: ");
             for (RemoteRepository repo: repos) {
-                debug(repo.getUrl());
+                debug(repo.getId() + ", url= " + repo.getUrl());
             }
         }
         return repos;
@@ -184,10 +199,10 @@ public class RedHatRepositorySystem extends DefaultRepositorySystem {
             List<RemoteRepository> allRepos = collectRequest.getRepositories();
             debug("(resolveDependencies) Fix remote repositories for " + collectRequest.getDependencies());
             for (Dependency dep: collectRequest.getDependencies()) {
-                List<RemoteRepository> repos = getRemoteRepositories(dep.getArtifact(), allRepos);
+                List<RemoteRepository> repos = getOrderedRemoteRepositories(dep.getArtifact(), allRepos);
                 collectRequest.setRepositories(repos); // get ordered or limited.
                 if (repos.size() == allRepos.size()) {
-                    break; // try all repos
+                    break; // try all repos, but orderred already
                 }
             }
         }
@@ -199,7 +214,7 @@ public class RedHatRepositorySystem extends DefaultRepositorySystem {
             throws ArtifactDescriptorException {
         if (enabled) {
             debug("(readArtifactDescriptor) Fix remote repositories for " + request.getArtifact());
-            request.setRepositories(getRemoteRepositories(request.getArtifact(), request.getRepositories()));
+            request.setRepositories(getOrderedRemoteRepositories(request.getArtifact(), request.getRepositories()));
         }
         return super.readArtifactDescriptor(session, request);
     }
@@ -211,7 +226,7 @@ public class RedHatRepositorySystem extends DefaultRepositorySystem {
             List<RemoteRepository> allRepos = request.getRepositories();
             debug("(collectDependencies) Fix remote repositories for " + request.getDependencies());
             for (Dependency dep: request.getDependencies()) {
-                List<RemoteRepository> repos = getRemoteRepositories(dep.getArtifact(), allRepos);
+                List<RemoteRepository> repos = getOrderedRemoteRepositories(dep.getArtifact(), allRepos);
                 request.setRepositories(repos); // get ordered or limited.
                 if (repos.size() == allRepos.size()) {
                     break; // try all repos
@@ -226,7 +241,7 @@ public class RedHatRepositorySystem extends DefaultRepositorySystem {
             throws ArtifactResolutionException {
         if (enabled) {
             debug("(resolveArtifact) Fix remote repositories for " + request.getArtifact());
-            request.setRepositories(getRemoteRepositories(request.getArtifact(), request.getRepositories()));
+            request.setRepositories(getOrderedRemoteRepositories(request.getArtifact(), request.getRepositories()));
         }
         return super.resolveArtifact(session, request);
     }
@@ -237,7 +252,7 @@ public class RedHatRepositorySystem extends DefaultRepositorySystem {
         if (enabled) {
             debug("(resolveArtifacts) Fix remote repositories for " + requests);
             for (ArtifactRequest request: requests) {
-                request.setRepositories(getRemoteRepositories(request.getArtifact(), request.getRepositories()));
+                request.setRepositories(getOrderedRemoteRepositories(request.getArtifact(), request.getRepositories()));
             }
         }
         return super.resolveArtifacts(session, requests);
@@ -248,7 +263,7 @@ public class RedHatRepositorySystem extends DefaultRepositorySystem {
             throws VersionResolutionException {
         if (enabled) {
             debug("(resolveVersion) Fix remote repositories for " + request.getArtifact());
-            request.setRepositories(getRemoteRepositories(request.getArtifact(), request.getRepositories()));
+            request.setRepositories(getOrderedRemoteRepositories(request.getArtifact(), request.getRepositories()));
         }
         return super.resolveVersion(session, request);
     }
@@ -258,7 +273,7 @@ public class RedHatRepositorySystem extends DefaultRepositorySystem {
             throws VersionRangeResolutionException {
         if (enabled) {
             debug("(resolveVersionRange) Fix remote repositories for " + request.getArtifact());
-            request.setRepositories(getRemoteRepositories(request.getArtifact(), request.getRepositories()));
+            request.setRepositories(getOrderedRemoteRepositories(request.getArtifact(), request.getRepositories()));
         }
         return super.resolveVersionRange(session, request);
     }
