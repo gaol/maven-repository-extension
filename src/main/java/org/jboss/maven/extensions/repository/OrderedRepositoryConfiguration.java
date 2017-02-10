@@ -55,7 +55,6 @@ class OrderedRepositoryConfiguration {
     private String[] defaultRepos; // only repository id string list
 
     private static final String KEY_REPO_INCLUDED = "repos.included";
-    private String[] includeRepos = new String[0];
 
     private List<OrderRule> orderRules = new ArrayList<OrderRule>(0);
 
@@ -107,6 +106,7 @@ class OrderedRepositoryConfiguration {
         }
         Properties props = mergeProperties(defaultProp, extraProp);
         if (props != null) {
+            String[] includeRepos = new String[0];
             Map<String, OrderRule> rules = new HashMap<String, OrderRule>();
             for (Map.Entry<Object, Object> entry: props.entrySet()) {
                 String key = entry.getKey().toString().trim();
@@ -226,13 +226,6 @@ class OrderedRepositoryConfiguration {
      */
     List<OrderRule> getOrderedRules() {
         return orderRules;
-    }
-
-    /**
-     * @return some repositories may be defined in sub module pom, we need to know what we need to append
-     */
-    String[] getIncludeRepoRules() {
-        return includeRepos;
     }
 
     /**
