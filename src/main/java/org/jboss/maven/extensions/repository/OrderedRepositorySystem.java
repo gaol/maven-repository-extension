@@ -73,11 +73,13 @@ public class OrderedRepositorySystem extends DefaultRepositorySystem {
     private static final String ADDITIONAL_PROP_URL = "ordered.repository.extension.configure.url";
 
     static final String DEBUG = "ordered.repository.extension.debug";
+    static final String TRACE = "ordered.repository.extension.trace";
 
     private static final String REPO_EXTENSTION_ENABLED_MESSAGE = "Ordered Maven Repository Extenstion is loaded.";
     
     private boolean enabled = Boolean.getBoolean(REPO_EXTENSTION_ENABLED);
-    private boolean debug = Boolean.getBoolean(DEBUG);
+    private boolean trace = Boolean.getBoolean(TRACE);
+    private boolean debug = Boolean.getBoolean(DEBUG) || trace;
 
     private OrderedRepositoryConfiguration config = null;
 
@@ -135,7 +137,7 @@ public class OrderedRepositorySystem extends DefaultRepositorySystem {
         List<RemoteRepository> repos = new ArrayList<RemoteRepository>();
         boolean matched = false;
         for (OrderRule rule: config.getOrderedRules()) {
-            if (gav.matches(rule.getPattern())) {
+            if (rule.getPattern().matcher(gav).matches()) {
                 matched = true;
                 // find matches, added repos in order of defined in rule.repos, then if include others, add left repos
                 for (String repoId: rule.getRepos()) {
@@ -198,6 +200,9 @@ public class OrderedRepositorySystem extends DefaultRepositorySystem {
             CollectRequest collectRequest = request.getCollectRequest();
             List<RemoteRepository> allRepos = collectRequest.getRepositories();
             debug("(resolveDependencies) Fix remote repositories for " + collectRequest.getDependencies());
+            if (trace) {
+                new Exception("TRACE INFORMATION").printStackTrace();
+            }
             for (Dependency dep: collectRequest.getDependencies()) {
                 List<RemoteRepository> repos = getOrderedRemoteRepositories(dep.getArtifact(), allRepos);
                 collectRequest.setRepositories(repos); // get ordered or limited.
@@ -214,6 +219,9 @@ public class OrderedRepositorySystem extends DefaultRepositorySystem {
             throws ArtifactDescriptorException {
         if (enabled) {
             debug("(readArtifactDescriptor) Fix remote repositories for " + request.getArtifact());
+            if (trace) {
+                new Exception("TRACE INFORMATION").printStackTrace();
+            }
             request.setRepositories(getOrderedRemoteRepositories(request.getArtifact(), request.getRepositories()));
         }
         return super.readArtifactDescriptor(session, request);
@@ -225,6 +233,9 @@ public class OrderedRepositorySystem extends DefaultRepositorySystem {
         if (enabled) {
             List<RemoteRepository> allRepos = request.getRepositories();
             debug("(collectDependencies) Fix remote repositories for " + request.getDependencies());
+            if (trace) {
+                new Exception("TRACE INFORMATION").printStackTrace();
+            }
             for (Dependency dep: request.getDependencies()) {
                 List<RemoteRepository> repos = getOrderedRemoteRepositories(dep.getArtifact(), allRepos);
                 request.setRepositories(repos); // get ordered or limited.
@@ -241,6 +252,9 @@ public class OrderedRepositorySystem extends DefaultRepositorySystem {
             throws ArtifactResolutionException {
         if (enabled) {
             debug("(resolveArtifact) Fix remote repositories for " + request.getArtifact());
+            if (trace) {
+                new Exception("TRACE INFORMATION").printStackTrace();
+            }
             request.setRepositories(getOrderedRemoteRepositories(request.getArtifact(), request.getRepositories()));
         }
         return super.resolveArtifact(session, request);
@@ -251,6 +265,9 @@ public class OrderedRepositorySystem extends DefaultRepositorySystem {
             throws ArtifactResolutionException {
         if (enabled) {
             debug("(resolveArtifacts) Fix remote repositories for " + requests);
+            if (trace) {
+                new Exception("TRACE INFORMATION").printStackTrace();
+            }
             for (ArtifactRequest request: requests) {
                 request.setRepositories(getOrderedRemoteRepositories(request.getArtifact(), request.getRepositories()));
             }
@@ -263,6 +280,9 @@ public class OrderedRepositorySystem extends DefaultRepositorySystem {
             throws VersionResolutionException {
         if (enabled) {
             debug("(resolveVersion) Fix remote repositories for " + request.getArtifact());
+            if (trace) {
+                new Exception("TRACE INFORMATION").printStackTrace();
+            }
             request.setRepositories(getOrderedRemoteRepositories(request.getArtifact(), request.getRepositories()));
         }
         return super.resolveVersion(session, request);
@@ -273,6 +293,9 @@ public class OrderedRepositorySystem extends DefaultRepositorySystem {
             throws VersionRangeResolutionException {
         if (enabled) {
             debug("(resolveVersionRange) Fix remote repositories for " + request.getArtifact());
+            if (trace) {
+                new Exception("TRACE INFORMATION").printStackTrace();
+            }
             request.setRepositories(getOrderedRemoteRepositories(request.getArtifact(), request.getRepositories()));
         }
         return super.resolveVersionRange(session, request);

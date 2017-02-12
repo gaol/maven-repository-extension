@@ -71,7 +71,7 @@ public class OrderedRepositoryConfigurationTest {
         // Red Hat product artifacts
         OrderRule c1 = rules.get(0);
         Assert.assertEquals(1, c1.getIndex());
-        Assert.assertEquals("[^\\n]*:[^\\n]*:[^\\n]*redhat-[^\\n]*", c1.getPattern());
+        Assert.assertEquals("[^\\n]*:[^\\n]*:[^\\n]*redhat-[^\\n]*", c1.getPattern().pattern());
         String[] c1Repos = c1.getRepos();
         Assert.assertEquals("jboss-eap-7.1-product-repository", c1Repos[0].trim());
         Assert.assertEquals("jboss-product-repository", c1Repos[1].trim());
@@ -80,7 +80,7 @@ public class OrderedRepositoryConfigurationTest {
         // Maven central artifacts
         OrderRule c2 = rules.get(1);
         Assert.assertEquals(2, c2.getIndex());
-        Assert.assertEquals("org.apache.maven.plugins:[^\\n]*:[^\\n]*", c2.getPattern());
+        Assert.assertEquals("org.apache.maven.plugins:[^\\n]*:[^\\n]*", c2.getPattern().pattern());
         String[] c2Repos = c2.getRepos();
         Assert.assertEquals("central", c2Repos[0].trim());
         Assert.assertEquals("jboss-public-repository-group", c2Repos[1].trim());
@@ -90,7 +90,7 @@ public class OrderedRepositoryConfigurationTest {
         // JBoss community artifacts
         OrderRule c3 = rules.get(2);
         Assert.assertEquals(3, c3.getIndex());
-        Assert.assertEquals("org.[jboss|wildfly][^\\n]*:[^\\n]*:[^\\n]*", c3.getPattern());
+        Assert.assertEquals("org.[jboss|wildfly][^\\n]*:[^\\n]*:[^\\n]*", c3.getPattern().pattern());
         String[] c3Repos = c3.getRepos();
         Assert.assertEquals("jboss-public-repository-group", c3Repos[0].trim());
         Assert.assertEquals("central", c3Repos[1].trim());

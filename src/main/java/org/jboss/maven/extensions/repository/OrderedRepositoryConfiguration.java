@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.regex.Pattern;
 
 /**
  * @author <a href="mailto:lgao@redhat.com">Lin Gao</a>
@@ -62,12 +63,12 @@ class OrderedRepositoryConfiguration {
 
     static class OrderRule {
         private int index;
-        private String pattern;
+        private Pattern pattern;
         private String description;
         private String[] repos;// defined order matters
         private boolean includeOtherRepo;
 
-        public String getPattern() {
+        public Pattern getPattern() {
             return pattern;
         }
         public String getDescription() {
@@ -129,7 +130,7 @@ class OrderedRepositoryConfiguration {
                     } else if (key.endsWith(KEY_DESCRPTION)) {
                         regexConfig.description = value;
                     } else {
-                        regexConfig.pattern = value;
+                        regexConfig.pattern = Pattern.compile(value);
                     }
                 }
             }
